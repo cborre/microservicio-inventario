@@ -7,6 +7,10 @@ import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,15 +28,10 @@ import com.nexos.microservicio.app.inventario.exceptions.CargoNoEncontradoExcept
 import com.nexos.microservicio.app.inventario.models.entity.Usuario;
 import com.nexos.microservicio.app.inventario.services.IUsuarioService;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-
 @CrossOrigin("*")
 @RestController
 @RequestMapping("/api/inventario")
+@Api(value = "ConfigSetup", tags = "Operations pertaining to usuario")
 public class UsuarioController {
 
 	@Autowired
@@ -41,11 +40,13 @@ public class UsuarioController {
 	@Autowired
 	IUsuarioService iUsuarioService;
 
-	@Operation(summary = "Lista todos los usuarios")
+	@ApiOperation(value = "Lista todos los usuarios")
 	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Muestra la lista de usuarios", content = {
-					@Content(mediaType = "application/json", schema = @Schema(implementation = UsuarioDto.class)) }),
-			@ApiResponse(responseCode = "500", description = "En caso de ocurrir un error interno", content = @Content) })
+			@ApiResponse(code = 200, message = "Muestra la lista de usuarios"),
+			@ApiResponse(code = 401, message = "You are not authorized to view the resource"),
+			@ApiResponse(code = 403, message = "Accessing the resource you were trying to reach is forbidden"),
+			@ApiResponse(code = 404, message = "The resource you were trying to reach is not found")
+	})
 	@GetMapping("/usuarios")
 	public ResponseEntity<?> listar() {
 
@@ -61,12 +62,13 @@ public class UsuarioController {
 		return ResponseEntity.status(HttpStatus.OK).body(usuarioResponse);
 	}
 
-	@Operation(summary = "Se encarga de guardar un usuario")
+	@ApiOperation(value = "Se encarga de guardar un usuario")
 	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Guardo un usuario correctamente", content = {
-					@Content(mediaType = "application/json", schema = @Schema(implementation = UsuarioDto.class)) }),
-			@ApiResponse(responseCode = "400", description = "En caso de ingresar un dato incorrecto, ejemlo si envia el nombre vacio", content = @Content),
-			@ApiResponse(responseCode = "500", description = "En caso de ocurrir un error interno", content = @Content) })
+			@ApiResponse(code = 200, message = "Guardo un usuario correctamente"),
+			@ApiResponse(code = 401, message = "You are not authorized to view the resource"),
+			@ApiResponse(code = 403, message = "Accessing the resource you were trying to reach is forbidden"),
+			@ApiResponse(code = 404, message = "The resource you were trying to reach is not found")
+	})
 	@PostMapping("/usuarios")
 	public ResponseEntity<?> guardar(@RequestBody @Valid UsuarioDto usuarioDto, BindingResult result) {
 		

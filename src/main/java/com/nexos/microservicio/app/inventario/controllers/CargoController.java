@@ -7,6 +7,10 @@ import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,15 +27,10 @@ import com.nexos.microservicio.app.inventario.dto.CargoDto;
 import com.nexos.microservicio.app.inventario.models.entity.Cargo;
 import com.nexos.microservicio.app.inventario.services.ICargoService;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.media.Schema;
-
 @CrossOrigin("*")
 @RestController
 @RequestMapping("/api/inventario")
+@Api(value = "ConfigSetup", tags = "Operations pertaining to cargo")
 public class CargoController {
 
 	@Autowired
@@ -40,11 +39,15 @@ public class CargoController {
 	@Autowired
 	ICargoService iCargoService;
 
-	@Operation(summary = "Lista todos los cargos")
+	@ApiOperation(
+			value = "Lista todos los cargos",
+			response = CargoDto.class)
 	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Muestra la lista de cargos", content = {
-					@Content(mediaType = "application/json", schema = @Schema(implementation = CargoDto.class)) }),
-			@ApiResponse(responseCode = "500", description = "En caso de ocurrir un error interno", content = @Content) })
+			@ApiResponse(code = 200, message = "Successfully retrieved list"),
+			@ApiResponse(code = 401, message = "You are not authorized to view the resource"),
+			@ApiResponse(code = 403, message = "Accessing the resource you were trying to reach is forbidden"),
+			@ApiResponse(code = 404, message = "The resource you were trying to reach is not found")
+	})
 	@GetMapping("/cargos")
 	public ResponseEntity<?> listar() {
 
@@ -58,12 +61,13 @@ public class CargoController {
 		return ResponseEntity.status(HttpStatus.OK).body(cargoResponse);
 	}
 
-	@Operation(summary = "Se encarga de guardar un cargo")
+	@ApiOperation("Se encarga de guardar un cargo")
 	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Guardo el cargo correctamente", content = {
-					@Content(mediaType = "application/json", schema = @Schema(implementation = CargoDto.class)) }),
-			@ApiResponse(responseCode = "400", description = "En caso de ingresar un dato incorrecto, ejemlo si envia el nombre vacio", content = @Content),
-			@ApiResponse(responseCode = "500", description = "En caso de ocurrir un error interno", content = @Content) })
+			@ApiResponse(code = 201, message = "Guardo el cargo correctamente"),
+			@ApiResponse(code = 401, message = "You are not authorized to view the resource"),
+			@ApiResponse(code = 403, message = "Accessing the resource you were trying to reach is forbidden"),
+			@ApiResponse(code = 404, message = "The resource you were trying to reach is not found")
+	})
 	@PostMapping("/cargos")
 	public ResponseEntity<?> guardar(@RequestBody @Valid CargoDto cargoDto, BindingResult result) {
 

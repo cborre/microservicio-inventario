@@ -7,6 +7,10 @@ import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,15 +27,10 @@ import com.nexos.microservicio.app.inventario.dto.ProductoDto;
 import com.nexos.microservicio.app.inventario.models.entity.Producto;
 import com.nexos.microservicio.app.inventario.services.IProductoService;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-
 @CrossOrigin("*")
 @RestController
 @RequestMapping("/api/inventario")
+@Api(value = "ConfigSetup", tags = "Operations pertaining to producto")
 public class ProductoController {
 
 	@Autowired
@@ -40,11 +39,13 @@ public class ProductoController {
 	@Autowired
 	IProductoService iProductoService;
 
-	@Operation(summary = "Lista todos los productos")
+	@ApiOperation(value = "Lista todos los productos")
 	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Muestra la lista de productos", content = {
-					@Content(mediaType = "application/json", schema = @Schema(implementation = ProductoDto.class)) }),
-			@ApiResponse(responseCode = "500", description = "En caso de ocurrir un error interno", content = @Content) })
+			@ApiResponse(code = 200, message = "Muestra la lista de productos"),
+			@ApiResponse(code = 401, message = "You are not authorized to view the resource"),
+			@ApiResponse(code = 403, message = "Accessing the resource you were trying to reach is forbidden"),
+			@ApiResponse(code = 404, message = "The resource you were trying to reach is not found")
+	})
 	@GetMapping("/productos")
 	public ResponseEntity<?> listar() {
 
@@ -60,12 +61,13 @@ public class ProductoController {
 		return ResponseEntity.status(HttpStatus.OK).body(productoResponse);
 	}
 
-	@Operation(summary = "Se encarga de guardar un producto")
+	@ApiOperation(value = "Se encarga de guardar un producto")
 	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Guardo el producto correctamente", content = {
-					@Content(mediaType = "application/json", schema = @Schema(implementation = ProductoDto.class)) }),
-			@ApiResponse(responseCode = "400", description = "En caso de ingresar un dato incorrecto, ejemlo si envia el nombre vacio", content = @Content),
-			@ApiResponse(responseCode = "500", description = "En caso de ocurrir un error interno", content = @Content) })
+			@ApiResponse(code = 200, message = "Guardo el producto correctamente"),
+			@ApiResponse(code = 401, message = "You are not authorized to view the resource"),
+			@ApiResponse(code = 403, message = "Accessing the resource you were trying to reach is forbidden"),
+			@ApiResponse(code = 404, message = "The resource you were trying to reach is not found")
+	})
 	@PostMapping("/productos")
 	public ResponseEntity<?> guardar(@RequestBody @Valid ProductoDto productoDto, BindingResult result) {
 
@@ -99,7 +101,7 @@ public class ProductoController {
 
 	/**
 	 * Este metodo se encarga de convertir de DTO a Entity
-	 * @param poductoDto
+	 * @param productoDto
 	 * @return
 	 */
 	private Producto convertToEntity(ProductoDto productoDto) {

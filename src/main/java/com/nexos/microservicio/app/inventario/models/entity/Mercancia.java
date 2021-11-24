@@ -1,5 +1,10 @@
 package com.nexos.microservicio.app.inventario.models.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.io.Serializable;
 import java.util.Date;
 
@@ -15,6 +20,10 @@ import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "mercancias")
 public class Mercancia implements Serializable {
@@ -50,67 +59,4 @@ public class Mercancia implements Serializable {
 	@Temporal(TemporalType.TIMESTAMP)
 	private Date fechaModifica;
 
-	public Integer getId() {
-		return id;
-	}
-
-	public void setId(Integer id) {
-		this.id = id;
-	}
-
-	public String getNombre() {
-		return nombre;
-	}
-
-	public void setNombre(String nombre) {
-		this.nombre = nombre;
-	}
-
-	public Integer getCantidad() {
-		return cantidad;
-	}
-
-	public void setCantidad(Integer cantidad) {
-		this.cantidad = cantidad;
-	}
-
-	public Date getFechaIngreso() {
-		return fechaIngreso;
-	}
-
-	public void setFechaIngreso(Date fechaIngreso) {
-		this.fechaIngreso = fechaIngreso;
-	}
-
-	public Producto getProducto() {
-		return producto;
-	}
-
-	public void setProducto(Producto producto) {
-		this.producto = producto;
-	}
-
-	public Usuario getUsuarioRegistro() {
-		return usuarioRegistro;
-	}
-
-	public void setUsuarioRegistro(Usuario usuarioRegistro) {
-		this.usuarioRegistro = usuarioRegistro;
-	}
-
-	public Usuario getUsuarioModifica() {
-		return usuarioModifica;
-	}
-
-	public void setUsuarioModifica(Usuario usuarioModifica) {
-		this.usuarioModifica = usuarioModifica;
-	}
-
-	public Date getFechaModifica() {
-		return fechaModifica;
-	}
-
-	public void setFechaModifica(Date fechaModifica) {
-		this.fechaModifica = fechaModifica;
-	}
 }

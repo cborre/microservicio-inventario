@@ -1,28 +1,20 @@
 package com.nexos.microservicio.app.inventario.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import javax.validation.constraints.NotBlank;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ProductoDto {
 
 	private Integer id;
 
 	@NotBlank
 	private String nombre;
-
-	public Integer getId() {
-		return id;
-	}
-
-	public void setId(Integer id) {
-		this.id = id;
-	}
-
-	public String getNombre() {
-		return nombre;
-	}
-
-	public void setNombre(String nombre) {
-		this.nombre = nombre;
-	}	
-	
 }

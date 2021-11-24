@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
+import io.swagger.annotations.*;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -32,295 +33,293 @@ import com.nexos.microservicio.app.inventario.exceptions.UsuarioNoEncontradoExce
 import com.nexos.microservicio.app.inventario.models.entity.Mercancia;
 import com.nexos.microservicio.app.inventario.services.IMercanciaService;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-
 @CrossOrigin("*")
 @RestController
 @RequestMapping("/api/inventario")
+@Api(value = "ConfigSetup", tags = "Operations pertaining to mercancia")
 public class MercanciaController {
 
-	@Autowired
-	private ModelMapper modelMapper;
+    @Autowired
+    private ModelMapper modelMapper;
 
-	@Autowired
-	IMercanciaService iMercanciaService;
+    @Autowired
+    IMercanciaService iMercanciaService;
 
-	@Operation(summary = "Lista todas las mercancias")
-	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Muestra la lista de mercancias", content = {
-					@Content(mediaType = "application/json", schema = @Schema(implementation = MercanciaDto.class)) }),
-			@ApiResponse(responseCode = "500", description = "En caso de ocurrir un error interno", content = @Content) })
-	@GetMapping("/mercancias")
-	public ResponseEntity<?> listar() {
+    @ApiOperation(
+            value = "Lista todas las mercancias",
+            response = MercanciaDto.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successfully retrieved list"),
+            @ApiResponse(code = 401, message = "You are not authorized to view the resource"),
+            @ApiResponse(code = 403, message = "Accessing the resource you were trying to reach is forbidden"),
+            @ApiResponse(code = 404, message = "The resource you were trying to reach is not found")
+    })
+    @GetMapping("/mercancias")
+    public ResponseEntity<?> listar() {
+
+        // Consulto los mercancias
+        List<Mercancia> mercancias = iMercanciaService.listar();
 
-		// Consulto los mercancias
-		List<Mercancia> mercancias = iMercanciaService.listar();
+        // Se convierte en una lista de mercancias DTO
+        List<MercanciaDto> mercanciaResponse = mercancias.stream().map(this::convertToDto).collect(Collectors.toList());
 
-		// Se convierte en una lista de mercancias DTO
-		List<MercanciaDto> mercanciaResponse = mercancias.stream().map(this::convertToDto).collect(Collectors.toList());
+        // Return
+        return ResponseEntity.status(HttpStatus.OK).body(mercanciaResponse);
+    }
 
-		// Return
-		return ResponseEntity.status(HttpStatus.OK).body(mercanciaResponse);
-	}
+    @ApiOperation("Se encarga de guardar una mercancia")
+    @ApiResponses(value = {
+            @ApiResponse(code = 201, message = "Guardo la mercancia correctamente"),
+            @ApiResponse(code = 401, message = "You are not authorized to view the resource"),
+            @ApiResponse(code = 403, message = "Accessing the resource you were trying to reach is forbidden"),
+            @ApiResponse(code = 404, message = "The resource you were trying to reach is not found")
+    })
+    @PostMapping("/mercancias")
+    public ResponseEntity<?> guardar(@RequestBody @Valid MercanciaDto mercanciaDto, BindingResult result) {
+
+        // Variables
+        Map<String, Object> response = new HashMap<>();
 
-	@Operation(summary = "Se encarga de guardar una mercancia")
-	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Guardo mercancia correctamente", content = {
-					@Content(mediaType = "application/json", schema = @Schema(implementation = MercanciaDto.class)) }),
-			@ApiResponse(responseCode = "400", description = "En caso de ingresar un dato incorrecto", content = @Content),
-			@ApiResponse(responseCode = "500", description = "En caso de ocurrir un error interno", content = @Content) })
-	@PostMapping("/mercancias")
-	public ResponseEntity<?> guardar(@RequestBody @Valid MercanciaDto mercanciaDto, BindingResult result) {
+        // Se verifica que no hay errores en la peticion
+        if (result.hasErrors()) {
 
-		// Variables
-		Map<String, Object> response = new HashMap<>();
+            // Variables
+            Map<String, Object> errores = new HashMap<>();
 
-		// Se verifica que no hay errores en la peticion
-		if (result.hasErrors()) {
+            // ForEach error
+            result.getFieldErrors().forEach(err -> {
+                errores.put(err.getField(), "El campo " + err.getField() + " " + err.getDefaultMessage());
+            });
 
-			// Variables
-			Map<String, Object> errores = new HashMap<>();
+            // Return
+            return ResponseEntity.badRequest().body(errores);
+        }
 
-			// ForEach error
-			result.getFieldErrors().forEach(err -> {
-				errores.put(err.getField(), "El campo " + err.getField() + " " + err.getDefaultMessage());
-			});
+        // Se convierte de Dto a Entity
+        Mercancia mercanciaRequest = convertToEntity(mercanciaDto);
 
-			// Return
-			return ResponseEntity.badRequest().body(errores);
-		}
+        // Se guarda el mercancia
+        Mercancia mercancia;
 
-		// Se convierte de Dto a Entity
-		Mercancia mercanciaRequest = convertToEntity(mercanciaDto);
+        try {
 
-		// Se guarda el mercancia
-		Mercancia mercancia;
+            // Guardar
+            mercancia = iMercanciaService.guardar(mercanciaRequest);
 
-		try {
+        } catch (ProductoNoEncontradoException e) {
 
-			// Guardar
-			mercancia = iMercanciaService.guardar(mercanciaRequest);
+            response.put("message", e.getMessage());
+            response.put("error", "PRODUCTO_NO_ENCONTRADO");
 
-		} catch (ProductoNoEncontradoException e) {
+            // Return
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
 
-			response.put("message", e.getMessage());
-			response.put("error", "PRODUCTO_NO_ENCONTRADO");
+        } catch (UsuarioNoEncontradoException e) {
 
-			// Return
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            response.put("message", e.getMessage());
+            response.put("error", "USUARIO_NO_ENCONTRADO");
 
-		} catch (UsuarioNoEncontradoException e) {
+            // Return
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
 
-			response.put("message", e.getMessage());
-			response.put("error", "USUARIO_NO_ENCONTRADO");
+        } catch (DataIntegrityViolationException e) {
 
-			// Return
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            String mensaje = null;
 
-		} catch (DataIntegrityViolationException e) {
+            if (e.getMessage().contains("ConstraintViolationException")) {
+                mensaje = "La mercancia ya existe";
+                response.put("message", mensaje);
+                response.put("error", "MERCANCIA_YA_EXISTE");
+            }
 
-			String mensaje = null;
+            // Return
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
 
-			if (e.getMessage().contains("ConstraintViolationException")) {
-				mensaje = "La mercancia ya existe";
-				response.put("message", mensaje);
-				response.put("error", "MERCANCIA_YA_EXISTE");
-			}
+        // Se convierte de Entity a Dto
+        MercanciaDto mercanciaResponse = convertToDto(mercancia);
 
-			// Return
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-		}
+        // Return
+        return ResponseEntity.status(HttpStatus.CREATED).body(mercanciaResponse);
+    }
 
-		// Se convierte de Entity a Dto
-		MercanciaDto mercanciaResponse = convertToDto(mercancia);
+    @ApiOperation(value = "Se encarga de editar una mercancia")
+    @ApiResponses(value = {
+            @ApiResponse(code = 201, message = "Actualiza mercancia correctamente"),
+            @ApiResponse(code = 401, message = "You are not authorized to view the resource"),
+            @ApiResponse(code = 403, message = "Accessing the resource you were trying to reach is forbidden"),
+            @ApiResponse(code = 404, message = "The resource you were trying to reach is not found")
+    })
+    @PutMapping("/mercancias/{id}")
+    public ResponseEntity<?> editar(
+            @PathVariable Integer id,
+            @RequestBody @Valid MercanciaUpdateDto mercanciaDto,
+            BindingResult result) {
 
-		// Return
-		return ResponseEntity.status(HttpStatus.CREATED).body(mercanciaResponse);
-	}
+        // Variables
+        Map<String, Object> response = new HashMap<>();
 
-	@Operation(summary = "Se encarga de editar una mercancia")
-	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Actualiza mercancia correctamente", content = {
-					@Content(mediaType = "application/json", schema = @Schema(implementation = MercanciaUpdateDto.class)) }),
-			@ApiResponse(responseCode = "400", description = "En caso de ingresar un dato incorrecto", content = @Content),
-			@ApiResponse(responseCode = "500", description = "En caso de ocurrir un error interno", content = @Content) })
-	@PutMapping("/mercancias/{id}")
-	public ResponseEntity<?> editar(
-			@Parameter(description = "ID de la mercancia a editar")
-			@PathVariable Integer id,
-			@RequestBody @Valid MercanciaUpdateDto mercanciaDto,
-			BindingResult result) {
+        // Se verifica que no hay errores en la peticion
+        if (result.hasErrors()) {
 
-		// Variables
-		Map<String, Object> response = new HashMap<>();
+            // Variables
+            Map<String, Object> errores = new HashMap<>();
 
-		// Se verifica que no hay errores en la peticion
-		if (result.hasErrors()) {
+            // ForEach error
+            result.getFieldErrors().forEach(err -> {
+                errores.put(err.getField(), "El campo " + err.getField() + " " + err.getDefaultMessage());
+            });
 
-			// Variables
-			Map<String, Object> errores = new HashMap<>();
+            // Return
+            return ResponseEntity.badRequest().body(errores);
+        }
 
-			// ForEach error
-			result.getFieldErrors().forEach(err -> {
-				errores.put(err.getField(), "El campo " + err.getField() + " " + err.getDefaultMessage());
-			});
+        // Se convierte de Dto a Entity
+        Mercancia mercanciaRequest = convertToEntity(mercanciaDto);
 
-			// Return
-			return ResponseEntity.badRequest().body(errores);
-		}
+        // Se guarda el mercancia
+        Mercancia mercancia;
 
-		// Se convierte de Dto a Entity
-		Mercancia mercanciaRequest = convertToEntity(mercanciaDto);
+        try {
 
-		// Se guarda el mercancia
-		Mercancia mercancia;
+            // Guardar
+            mercancia = iMercanciaService.editar(id, mercanciaRequest);
 
-		try {
+        } catch (MercanciaNoEncontradaException e) {
 
-			// Guardar
-			mercancia = iMercanciaService.editar(id, mercanciaRequest);
+            response.put("message", e.getMessage());
+            response.put("error", "MERCANCIA_NO_ENCONTRADA");
 
-		} catch (MercanciaNoEncontradaException e) {
+            // Return
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
 
-			response.put("message", e.getMessage());
-			response.put("error", "MERCANCIA_NO_ENCONTRADA");
+        } catch (ProductoNoEncontradoException e) {
 
-			// Return
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            response.put("message", e.getMessage());
+            response.put("error", "PRODUCTO_NO_ENCONTRADO");
 
-		} catch (ProductoNoEncontradoException e) {
+            // Return
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
 
-			response.put("message", e.getMessage());
-			response.put("error", "PRODUCTO_NO_ENCONTRADO");
+        } catch (UsuarioNoEncontradoException e) {
 
-			// Return
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            response.put("message", e.getMessage());
+            response.put("error", "USUARIO_NO_ENCONTRADO");
 
-		} catch (UsuarioNoEncontradoException e) {
+            // Return
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
 
-			response.put("message", e.getMessage());
-			response.put("error", "USUARIO_NO_ENCONTRADO");
+        } catch (DataIntegrityViolationException e) {
 
-			// Return
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            String mensaje = null;
 
-		} catch (DataIntegrityViolationException e) {
+            if (e.getMessage().contains("ConstraintViolationException")) {
+                mensaje = "La mercancia ya existe";
+                response.put("message", mensaje);
+                response.put("error", "MERCANCIA_YA_EXISTE");
+            }
 
-			String mensaje = null;
+            // Return
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
 
-			if (e.getMessage().contains("ConstraintViolationException")) {
-				mensaje = "La mercancia ya existe";
-				response.put("message", mensaje);
-				response.put("error", "MERCANCIA_YA_EXISTE");
-			}
+        // Se convierte de Entity a Dto
+        MercanciaUpdateDto mercanciaResponse = convertToUpdateDto(mercancia);
 
-			// Return
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-		}
+        // Return
+        return ResponseEntity.status(HttpStatus.CREATED).body(mercanciaResponse);
+    }
 
-		// Se convierte de Entity a Dto
-		MercanciaUpdateDto mercanciaResponse = convertToUpdateDto(mercancia);
+    @ApiOperation(value = "Se encarga de eliminar mercancia")
+    @ApiResponses(value = {
+            @ApiResponse(code = 204, message = "Elimina mercancia correctamente"),
+            @ApiResponse(code = 401, message = "You are not authorized to view the resource"),
+            @ApiResponse(code = 403, message = "Accessing the resource you were trying to reach is forbidden"),
+            @ApiResponse(code = 404, message = "The resource you were trying to reach is not found")
+    })
+    @DeleteMapping("/mercancias/{id}/{usuarioId}")
+    public ResponseEntity<?> eliminar(
+            @PathVariable Integer id,
+            @PathVariable Integer usuarioId) {
 
-		// Return
-		return ResponseEntity.status(HttpStatus.CREATED).body(mercanciaResponse);
-	}
+        // Variables
+        Map<String, Object> response = new HashMap<>();
 
-	@Operation(summary = "Se encarga de eliminar mercancia")
-	@ApiResponses(value = {
-			@ApiResponse(responseCode = "204", description = "Elimina mercancia correctamente", content = {
-					@Content(mediaType = "application/json") }),
-			@ApiResponse(responseCode = "400", description = "En caso de ingresar un dato incorrecto", content = @Content),
-			@ApiResponse(responseCode = "500", description = "En caso de ocurrir un error interno", content = @Content) })
-	@DeleteMapping("/mercancias/{id}/{usuarioId}")
-	public ResponseEntity<?> eliminar(
-			@Parameter(description = "ID de la mercancia a eliminar")
-			@PathVariable Integer id,
-			@Parameter(description = "ID del usuario que desea eliminar la mercancia")
-			@PathVariable Integer usuarioId) {
+        try {
 
-		// Variables
-		Map<String, Object> response = new HashMap<>();
+            // Eliminar
+            iMercanciaService.eliminar(id, usuarioId);
 
-		try {
+        } catch (UsuarioNoEncontradoException e) {
 
-			// Eliminar
-			iMercanciaService.eliminar(id, usuarioId);
+            response.put("message", e.getMessage());
+            response.put("error", "USUARIO_NO_ENCONTRADA");
 
-		} catch (UsuarioNoEncontradoException e) {
+            // Return
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
 
-			response.put("message", e.getMessage());
-			response.put("error", "USUARIO_NO_ENCONTRADA");
+        } catch (MercanciaNoEncontradaException e) {
 
-			// Return
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            response.put("message", e.getMessage());
+            response.put("error", "MERCANCIA_NO_ENCONTRADA");
 
-		} catch (MercanciaNoEncontradaException e) {
+            // Return
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
 
-			response.put("message", e.getMessage());
-			response.put("error", "MERCANCIA_NO_ENCONTRADA");
+        } catch (SinPermisoException e) {
 
-			// Return
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-			
-		} catch (SinPermisoException e) {
+            response.put("message", e.getMessage());
+            response.put("error", "SIN_PERMISO");
 
-			response.put("message", e.getMessage());
-			response.put("error", "SIN_PERMISO");
+            // Return
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
 
-			// Return
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-		}
+        // Return
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
 
-		// Return
-		return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-	}
+    /**
+     * Este metodo se encarga de convertir de DTO a Entity
+     *
+     * @param mercanciaDto
+     * @return
+     */
+    private Mercancia convertToEntity(MercanciaDto mercanciaDto) {
 
-	/**
-	 * Este metodo se encarga de convertir de DTO a Entity
-	 * 
-	 * @param usuarioDto
-	 * @return
-	 */
-	private Mercancia convertToEntity(MercanciaDto mercanciaDto) {
+        Mercancia mercancia = modelMapper.map(mercanciaDto, Mercancia.class);
 
-		Mercancia mercancia = modelMapper.map(mercanciaDto, Mercancia.class);
+        // Return
+        return mercancia;
+    }
 
-		// Return
-		return mercancia;
-	}
+    private Mercancia convertToEntity(MercanciaUpdateDto mercanciaDto) {
 
-	private Mercancia convertToEntity(MercanciaUpdateDto mercanciaDto) {
+        Mercancia mercancia = modelMapper.map(mercanciaDto, Mercancia.class);
 
-		Mercancia mercancia = modelMapper.map(mercanciaDto, Mercancia.class);
+        // Return
+        return mercancia;
+    }
 
-		// Return
-		return mercancia;
-	}
+    /**
+     * Este metodo se encarga de convertir de Entity a DTO
+     *
+     * @param mercancia
+     * @return
+     */
+    private MercanciaDto convertToDto(Mercancia mercancia) {
 
-	/**
-	 * Este metodo se encarga de convertir de Entity a DTO
-	 * 
-	 * @param mercancia
-	 * @return
-	 */
-	private MercanciaDto convertToDto(Mercancia mercancia) {
+        MercanciaDto mercanciaDto = modelMapper.map(mercancia, MercanciaDto.class);
 
-		MercanciaDto mercanciaDto = modelMapper.map(mercancia, MercanciaDto.class);
+        // Return
+        return mercanciaDto;
+    }
 
-		// Return
-		return mercanciaDto;
-	}
+    private MercanciaUpdateDto convertToUpdateDto(Mercancia mercancia) {
 
-	private MercanciaUpdateDto convertToUpdateDto(Mercancia mercancia) {
+        MercanciaUpdateDto mercanciaDto = modelMapper.map(mercancia, MercanciaUpdateDto.class);
 
-		MercanciaUpdateDto mercanciaDto = modelMapper.map(mercancia, MercanciaUpdateDto.class);
-
-		// Return
-		return mercanciaDto;
-	}
+        // Return
+        return mercanciaDto;
+    }
 }
